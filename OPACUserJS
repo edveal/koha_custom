@@ -1,0 +1,874 @@
+// RT 92543 1.18.22 lg
+if ( $('#opac-usersuggestions').length ) {
+    $('.required').each( function() {
+    	$(this).addClass('text-danger');
+    });
+    $('label[for="copyrightdate"]').text('Publication date:');
+    $('label[for="publishercode"]').text('Intended audience:');
+    $('label[for="place"]').text('Format:');
+    $('label[for="collectiontitle"]').text('If purchased, place hold for me:');
+    $('label[for="itemtype"]').text('If not purchased, order interlibrary loan for me');
+    $('label[for="note"]').text('Additional information:');
+    $('#note').attr('maxlength' , 100 );
+
+    $('#publishercode').replaceWith(`
+    <select id="publishercode" name="publishercode" class="valid required" aria-invalid="false">
+        <option value="">--Choose--</option>
+        <option value="Adults">Adults</option>
+        <option value="Teens">Teens</option>
+        <option value="Children">Children</option>
+        <option value="General/Unknown">General/Unknown</option>
+    </select>
+    `);
+
+    $('#place').replaceWith(`
+    <select id="place" name="place" class="valid required" aria-invalid="false">
+        <option value="">--Choose--</option>
+        <option value="Book">Book</option>
+        <option value="Large type">Large type</option>
+        <option value="Blu-ray">Blu-ray</option>
+        <option value="DVD">DVD</option>
+        <option value="CD audiobook">CD audiobook</option>
+    </select>
+    `);
+
+    $('#collectiontitle').replaceWith(`
+    <select id="collectiontitle" name="collectiontitle" class="valid required" aria-invalid="false">
+        <option value="">--Choose--</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+    `);
+
+    $('#itemtype').replaceWith(`
+    <select id="itemtype" name="itemtype" class="valid required" aria-invalid="false">
+        <option value="">--Choose--</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+    </select>
+    `);
+  
+  $('#itemtype').parent().insertAfter( $('#collectiontitle').parent() );
+  $('#place').parent().insertAfter( $('#publishercode').parent() );
+} 
+
+//limit search to certain ccodes on https://kids-mckinney.bywatersolutions.com/
+if( window.location.href.indexOf("https://kids-mckinney.bywatersolutions.com/") > -1 ) {
+let ccodes_to_show = ['brfam' , 'brspfam' , 'dfam' , 'erf' , 'ernf' , 'jabbl' , 'jac' , 'jals' , 'jan' , 'jat2x2' , 'jbio' , 'jf' , 'jfgn' , 'jnf' , 'kitst' , 'mid' , 'pic123' , 'picabc' , 'picbb' , 'picbk' , 'picbkfav' , 'picbkhol' , 'sp123' , 'spabc' , 'sper' , 'spernf' , 'spfav' , 'spgnjf' , 'spjbio' , 'spjf' , 'spjnf' , 'spmid' , 'sppicbk' , 'spya' , 'steamkit'];
+ccodes_to_show.forEach( function(arrayItem) {
+$('#searchform').append(`<input type="hidden" name="limit" value="mc-ccode:${arrayItem}">`);
+});
+}
+
+https://staff.mckinney.bywatersolutions.com/cgi-bin/koha/tools/viewlog.pl?src=&user=&modules=CRONJOBS&actions=&object=&info=&interfaces=&from=2024-08-31&to=2024-09-08&output=screen&basename=Export&report_name=&do_it=1
+
+/* RT 80313 4.25.21 lg */
+if ( $('#opac-patron-registration').length ) {
+    let vote_attr = $('input[name="patron_attribute_code"][value="VOTE"]');
+    vote_attr.siblings('label').addClass('required');
+    vote_attr.parent().append('<span class="required" aria-required="true">Required</span>');
+    vote_attr.siblings('textarea').prop('required' , true);
+    vote_attr.parent().insertAfter( $('#borrower_branchcode').parent() );
+}
+
+/* start e-card jQuery */
+/*
+if ($('#usermenu').length) {
+ let ecard_report_number = 708;
+ let eborrowernumber = $('.loggedinusername').attr('data-borrowernumber');
+ $.getJSON(`/cgi-bin/koha/svc/report?id=${ecard_report_number}&sql_params=` + eborrowernumber, function(data) {
+ $.each(data, function(index, value) {
+ let ecard_number = data[0][0];
+ let ecard_name_obj = $('.userlabel').text();
+ let ecard_name = ecard_name_obj.split("Welcome, ");
+ $('#menu').prepend('<li><button type="button" class="btn btn-primary" data-toggle="modal" data-target=".ecardModal">View your e-card</button></li>');
+ $('body').append('<div class="ecardModal modal hide" tabindex="-1" role="dialog"> <div class="modal-dialog" role="document"> <div class="modal-content"> <div class="modal-header"> <h5 class="modal-title"></h5><h3>Your Library eCard</h3> </div><div class="modal-body"> <div id="library_ecard"> <div id="name_photo"> <i class="fa fa-user-circle-o" aria-hidden="true"></i> <span><h3>' + ecard_name[1] + '</h3></span> </div><div style="text-align: center;"> <svg id="barcode_placeholder"></svg> </div></div></div><div class="modal-footer"> <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button> </div></div></div>');
+ $.getScript("https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.0/barcodes/JsBarcode.codabar.min.js")
+ .done(function(script, textStatus) {
+ var element = document.getElementById("barcode_placeholder");
+ JsBarcode(element, ecard_number, {
+ width: 2,
+ height: 75,
+ displayValue: true,
+ });
+ })
+ });
+ })
+}*/
+/* end e-card jQuery */
+
+/* hide B&T covers when there is a local cover. details page RT 76002 12.3.20 lg*/
+if ( $('#opac-detail').length ) {
+  let target = document.querySelector('#local-thumbnail-preview');
+  let config = { attributes: true, childList: true, characterData: true }
+  let observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if ( $('#local-thumbnail-preview .thumbnail[src*="/cgi-bin/koha/opac-image.pl"]').length ) {
+        $('img[alt="See Baker & Taylor"]').hide();
+      }
+    });
+  });
+  observer.observe(target, config);
+}  
+/* hide B&T covers when there is a local cover. results page RT 76002 12.3.20 lg*/
+if ( $('#results').length ) {
+    $("[id^=local-thumbnail]").each( function() {
+        let this_id = '#' + $(this).attr('id');
+        let target = document.querySelector(this_id);
+        let config = { attributes: true, childList: true, characterData: true }
+        let observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(mutation) {
+            var addedNodes = $(mutation.addedNodes[0]);
+            if ( addedNodes.prop('nodeName') == "IMG" ) {
+            	addedNodes.parent().siblings('img').hide();
+            }
+
+          });
+        });
+        observer.observe(target, config);
+    })
+}
+
+if ( $('#opac-patron-update').length ) {
+  let cardnumber = $('label[for="borrower_cardnumber"]').parent().contents().get(2).nodeValue.trim();
+  $('#usermenu').prepend('<svg id="barcode_placeholder"></svg>');
+  $.getScript( "https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.0/barcodes/JsBarcode.codabar.min.js" )
+  .done(function( script, textStatus ) {
+        var element = document.getElementById("barcode_placeholder");
+        JsBarcode(element, cardnumber, {
+          width: 2,
+          height: 75,
+          displayValue: false
+  });
+  })
+}
+
+// Clearing userid and pwd from PatronSelfRegistrationAdditionalInstructions page in opac. EV
+$(document).ready(function() {
+if (window.location == "https://mckinney.bywatersolutions.com/cgi-bin/koha/opac-memberentry.pl") {
+    $('#login').remove();    
+  	$('#patron-userid-p').remove();
+	$('#patron-password-p').remove();
+  	$('#patron-instructions').remove();
+    }
+});
+
+// JSON Custom list script Ed testing
+/*
+$(document).ready(function() {
+	var data1;  
+	$.get( "/cgi-bin/koha/svc/report?id=546", function( data1 ) {
+                console.log("Data546: " + data1);
+		$.each(data1, function(index, value) {
+		// json is a record arr
+		var json = value;
+		var tr;
+		tr = $('<tr/>');
+		$.each(json, function(index, value) {
+		tr.append("<td>" + value + "</td>");
+		});
+		$('#custom_table').append(tr); // alert( index + ": " + value );
+		});
+	//$("#custom_table").tablesorter();
+	});
+	});
+
+
+// JSON Custom list script
+
+$(document).ready(function() {
+	var data2;  
+	$.get( "/cgi-bin/koha/svc/report?id=548", function( data2 ) {
+		$.each(data2, function(index2, value2) {
+		// json is a record arr
+		var json = value2;
+                console.log(json);
+		var tr;
+		tr = $('<tr/>');
+		$.each(json, function(index2, value2) {
+                console.log(value2);
+		tr.append("<td>" + value2 + "</td>");
+		});
+		$('#custom_table2').append(tr); // alert( index2 + ": " + value2 );
+		});
+	$("#custom_table2").tablesorter();
+	});
+	});
+*/
+
+// End Ed's testing of JSON 
+
+$(document).ready(function () {
+	$("#password-recovery label[for='email']").prepend("<h2>Or</h2><br>");
+});
+
+// Removing options from Cart download. EV
+$(document).ready(function(){
+  $("#userdownloadcart option[value='bibtex']").hide();
+  $("#userdownloadcart option[value='iso2709']").hide();
+  $("#userdownloadcart option[value='2']").hide();
+  $("#userdownloadcart option[value='isbd']").hide();
+});
+
+
+// Place hold from cart
+$(document).ready(function() {
+   if (window.location.pathname == '/cgi-bin/koha/opac-basket.pl') {
+	$("#save_items").html("Click here to place hold.");	
+	}
+});
+
+$(document).ready(function(){
+if ( $('#advsearch').length ) {
+
+// Add Accelerated Reading Level to advanced search
+$("[id^=search-field_]").append('<option value="arl,phr">Accelerated Reading Level</option>');
+
+// Add Accelerated Reading Point to advanced search
+$("[id^=search-field_]").append('<option value="arp,phr">Accelerated Reading Point</option>');
+}
+});
+
+
+$(document).ready(function () {
+
+
+
+  $("#opacnavbottom select").change(function() {
+        window.location = $(this).find("option:selected").val();
+      });
+});
+
+$(document).ready(function () {
+  $(".online_resources").each(function () {
+    let getText = $(this).html();
+    let newText= getText.replace(/\|/g, '');
+    $(this).html(newText);
+  })
+});
+
+/* Styling of Cloud Library buttons. EV 20180924 */
+$(document).on('DOMNodeInserted','button.cloud_action',function(){
+$(".cloud_action").css({
+      	"color": "#ffffff",
+	"background-color": "#177699",
+	"text-shadow": "0 -1px 0 rgba(0, 0, 0, 0.25)",
+	"background-image": "-moz-linear-gradient(top, #177699, #177699)",
+	"background-image": "-webkit-gradient(linear, 0 0, 0 100%, from(#177699), to(#177699))",
+	"background-image": "-webkit-linear-gradient(top, #177699, #177699)",
+	"background-image": "-o-linear-gradient(top, #177699, #177699)",
+	"background-image": "linear-gradient(to bottom, #177699, #177699)",
+	"background-repeat": "repeat-x;",
+	"filter": "progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff0088cc', endColorstr='#ff0044cc', GradientType=0)",
+	"border-color": "#177699;",
+	"*background-color": "#177699",
+	"filter": "progid:DXImageTransform.Microsoft.gradient(enabled = false)",
+    });
+});
+
+$(document).ready(function () {
+$("a:contains(Cover Image)").remove();
+$("a:contains(cloudLibrary Icon)").remove();
+});  
+ 
+// booking plugin
+/*
+  $("#moresearches li:contains('Advanced search')").after("<li><a href='/booking' target='_blank'>Booking</a></li>");
+});
+*/
+  
+/* Styling of Cloud Library buttons. */
+
+/*RT 52935 9.20.18 LG */
+/*
+$(document).ready(function () {
+    if ( $('#results').length > 0 ) {
+
+      $(".pagination:first").append('<div class="pageAlert">Showing all results</div>');
+
+      $("#availability_facet a").attr('href' , '#');
+
+      $( ".availability" ).not(':has(.available)').parent().parent().addClass( "redLight" );
+
+      $("#availability_facet a").toggle(function (e) {
+        e.preventDefault();
+        $("#availability_facet a").text('Show all items');
+        $(".pageAlert").text("Showing only available items").css('color' , 'green');
+        $(".redLight").fadeOut('slow' , function() {
+            if ( $(".table tr:visible").length === 0 ) {
+                $(".pageAlert").text("There are no available results on this page. Try the next page.");
+            }
+        });
+      }, function() {
+        $("#availability_facet a").text('Limit to currently available items.');
+        $(".pageAlert").text("Showing all results").css('color' , 'red');
+        $(".redLight").fadeIn('slow' , function() {
+        });
+      });
+    }
+  });
+*/
+$( document ).ready(function() {
+
+        //add lexile to search pull downs
+        $("select[name='idx']").append("<option value='lexile-number,st-numeric'>Lexile score (e.g. 600 or 550-650 )</option>");
+        //$("select[name='idx']").append("<option value='Interest-age-level,wrdl'>Interest Age Level</option>");
+        //$("select[name='idx']").append("<option value='Interest-grade-level,wrdl'>Interest Grade Level</option>");
+        //$("select[name='idx']").append("<option value='Reading-grade-level,wrdl'>+Reading Grade Level</option>");
+
+/* Pending approval of librarians/supervisors meeting EV */
+/* $("li#availability_facet").remove(); */
+/* $("div label[for='available-items']").remove(); */
+
+/*Hides the 776 tag in the opac EV 20180626 */
+$("span.add_physical_form").remove();
+
+/*Hides the series statement on the details page. EV 20180731 */
+$("span.results_summary.series").remove();
+
+/* Add Booking link for redirection plugin script */ 
+//$("#moresearches li:contains('Advanced search')").after("<li><a href='/booking' target='_blank'>Booking</a></li>");
+
+// Hides the Digital and Outreach libraries from the Library option on the patron suggestion page and pick-up location options. EV
+$("#branch option[value='DIGITAL']").hide();
+$("#branch option[value='ORV']").hide();
+$(".branch option[value='DIGITAL']").hide();
+$(".branch option[value='ORV']").hide();
+
+// Hides the Outreach Vehicle library from the search dropdown. EV
+$("#select_library option[value='branch:ORV']").hide();
+
+$(".note input").on("keyup", function() { var parent = $(this).parent(); $(parent).find('.btn').text('Submit') });
+
+});
+
+//adding code to help with mobile layout of facets
+
+if ($(window).width() < 480 || $(window).height() < 480) {
+
+$("#selections-toolbar, .checkall, .clearall, .highlight_controls, .list-actions, .selectcol").attr("style", " display: inline") 
+   
+
+
+$("#moresearches ul").attr('style', 'display:none')
+
+$("#moresearches").prepend('<h1 id="more_searches_button"><i class="fa fa-bars" aria-hidden="true"></i></h1>');
+
+$("#selections-toolbar").attr("style", "display:none");
+
+$("#selections-toolbar").before('<h1 id="save_items">Save Items</h1>');
+
+$("#save_items").insertAfter("#search-facets")
+
+$('#moresearches h1').click(function() {
+            $('#moresearches ul').slideToggle("fast");
+    });
+
+$('#save_items').click(function() {
+            $('#selections-toolbar').slideToggle("fast");
+    });
+
+}
+
+
+
+/*$("#moresearches ul").attr('style', 'display:none')
+
+$("#moresearches").prepend('<h1 id="more_searches_button"><i class="fa fa-bars" aria-hidden="true"></i></h1>');
+
+$("#selections-toolbar").attr("style", "display:none");
+
+$("#selections-toolbar").before('<h1 id="save_items">Save Items</h1>');
+
+$("#save_items").insertAfter("#search-facets")
+
+$('#moresearches h1').click(function() {
+            $('#moresearches ul').slideToggle("fast");
+    });
+
+$('#save_items').click(function() {
+            $('#selections-toolbar').slideToggle("fast");
+    });*/
+
+
+
+// Renames "Note to "Report a problem with this item." EV 20171115.
+$("#userdetails #checkoutst th:contains(Note)").html("Report a problem with this item.");
+
+// Changed "Login" to "Library Card Number"  EV 20171105
+$( document ).ready(function() {
+$(document).ready(function(){
+  $("#auth label[for='userid']").html("Library Card Number:");
+  $("#modalAuth label[for='muserid']").html("Library Card Number:");
+
+});
+});
+
+
+//#43631, hide suspend and cancel buttons for items
+//with status "Item waiting", BWS, 7/03/17
+
+$( document ).ready(function() {
+
+$('#opac-user-holds .status').each(function () { 
+if ( $(this).text().indexOf('Item waiting') > 0 ) {
+parent = $(this).parent();
+$(parent).find('form .btn').remove();
+$(parent).find('.btn-link').remove();
+}
+
+
+ 
+});
+
+
+
+});
+
+//make media tab display by default
+
+$( window ).load(function() {
+
+
+if ($('#html5media').length > 0) { 
+
+var media = $("#html5media").html();
+
+$(".results_summary.online_resources").append(media); }
+
+
+
+
+});
+
+$( document ).ready(function() {
+
+//on password recovery page change to ask for library card number
+
+$("#password-recovery label[for='username']").text("Library card number");
+
+
+
+
+                            
+//replace checked with ordered
+
+$('#ui-id-6').each(function() {
+        console.log($(this).text());
+        var text = $(this).text().replace('Checked', 'Ordered');
+        $(this).text(text);
+    });
+
+/*$("#suggestiontabs #ui-id-6").text("Ordered");*/
+
+$("#nologininstructions p:eq(3)").text("If you have forgotten your password, please contact library staff at 972-547-7323.");
+
+$("#nologininstructions p:eq(3)").before("<p>If you do not yet have a card, you may <a href='http://mckinney.bywatersolutions.com/cgi-bin/koha/opac-memberentry.pl'>register here</a>. </p>");
+
+
+$("#usersuggestions p:first").append("<p>The library does not accept suggestions for items prior to their publication date. Pre-publication suggestions will be automatically rejected</p>");
+
+$("#nologininstructions p:eq(2)").remove();
+
+});
+
+//Begin Google Analytics script
+
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-86191621-1', 'auto');
+  ga('send', 'pageview');
+
+//End Google Analytics script
+
+
+$( document ).ready(function() {
+
+/*$( ".results_summary .online_resources" ).add( "div" ).addClass( "ebooktest" );*/
+
+
+//Surname changes to Last Name : 
+$("#memberentry_identity label[for='surname']").html("Last Name :");
+
+$("#memberentry_identity label[for='borrower_surname']").html("Last Name :");
+
+
+
+//Causes the user cardnumber to auto populate to the Username.
+$("#entryform #cardnumber").blur(function(){
+$("#entryform #userid").val($("#entryform #cardnumber").val());
+});
+
+
+});
+
+$( ".pagination ul" ).append( "<span class='back blue' onclick='goBack()'>Home</span>" );
+
+function goBack() {
+    window.history.back();
+}
+
+
+//RBdigital link change
+
+$("#userresults").ready(function(){
+$("#userresults table td").each(function(i){
+td = $(this);
+var ohdbks_link = td.find("a[href*='oneclickdigital.com']");
+var linkc = ohdbks_link.parent();
+var ohdbks_link = ohdbks_link.attr("href");
+if(ohdbks_link){
+$("td:eq("+i+") span.availability,td:eq("+i+") span.actions").hide();
+$("#results a:contains('[electronic resource]') ~ span[id='location']").hide();
+linkc.html('<a class="ebook" href="'+ohdbks_link+'">Check RBDigital for Availability</a>');
+}
+});
+});
+
+$("span.online_resources").ready(function(){
+var ohdbks_link = $("span.online_resources a[href*='oneclickdigital.com']").attr("href");
+if(ohdbks_link){
+$("#holdings").html('<a href="'+ohdbks_link+'"><img alt="Check One Click Digital for Availability" src="http://media.bywatersolutions.com/Model/opac-generic.jpg" /></a>');
+}
+});
+
+//Gale Virtual Reference Library
+
+$("#userresults").ready(function(){
+$("#userresults table td").each(function(i){
+td = $(this);
+var ohdbks_link = td.find("a[href*='galegroup.com']");
+var linkc = ohdbks_link.parent();
+var ohdbks_link = ohdbks_link.attr("href");
+if(ohdbks_link){
+$("td:eq("+i+") span.availability,td:eq("+i+") span.actions").hide();
+$("#results a:contains('[electronic resource]') ~ span[id='location']").hide();
+linkc.html('<a class="ebook" href="'+ohdbks_link+'">Available for McKinney Public Library via Gale Virtual Reference Library. Click here to access</a>');
+}
+});
+});
+
+$("span.online_resources").ready(function(){
+var ohdbks_link = $("span.online_resources a[href*='galegroup.com']").attr("href");
+if(ohdbks_link){
+$("#holdings").html('<a href="'+ohdbks_link+'"><img alt="Available for McKinney Public Library via Gale Virtual Reference Library. Click here to access" src="http://media.bywatersolutions.com/Model/opac-generic.jpg" /></a>');
+}
+});
+
+//Cloud Library by 3M
+
+$("#userresults").ready(function(){
+$("#userresults table td").each(function(i){
+td = $(this);
+var ohdbks_link = td.find("a[href*='ebook.3m.com']");
+var linkc = ohdbks_link.parent();
+var ohdbks_link = ohdbks_link.attr("href");
+if(ohdbks_link){
+$("td:eq("+i+") span.availability,td:eq("+i+") span.actions").hide();
+$("#results a:contains('[electronic resource]') ~ span[id='location']").hide();
+linkc.html('<a class="ebook" href="'+ohdbks_link+'">3M Cloud Library. Click here to access</a>');
+}
+});
+});
+
+$("span.online_resources").ready(function(){
+var ohdbks_link = $("span.online_resources a[href*='ebook.3m.com']").attr("href");
+if(ohdbks_link){
+$("#holdings").html('<a href="'+ohdbks_link+'"><img alt="3M Cloud Library" src="http://media.bywatersolutions.com/Model/opac-generic.jpg" /></a>');
+}
+});
+
+
+
+//Code for restricted page 
+$(document).ready(function() {
+
+  $(function() {
+    $('.restrict-heading').click(function() {
+      $('.restrict-inner').slideUp('normal');
+      $('.restrict-heading').removeClass('acc-active');
+      if ($(this).next().is(':visible') == true) {
+        $('.restrict-heading').removeClass('active');
+      }
+      if ($(this).next().is(':hidden') == true) {
+        $(this).next().slideDown('fast');
+        $(this).addClass('acc-active');
+      }
+      $('.restrict-inner').one().removeClass('show');
+    });
+
+    $('.restrict-inner').hide();
+    $('.show').show();
+  });
+
+//New Resources Slider 
+
+
+var currentSlide = 0;
+var $slides = $('.restrict-slider .restrict-newicon');
+var $totalSlides = $slides.length;
+
+
+// Hides all slides, Displays Current index
+function cycleSlides() {
+  // stores current slide
+  var $slide = $('.restrict-slider .restrict-newicon').eq(currentSlide);
+  // hides all slides
+  $slides.hide();
+  // display current slide
+  $slide.css('display', 'inline-block');
+}
+
+// call click function when next button is clicked
+$('.restrict-next').click(function() {
+  // update current slide index
+  currentSlide += 1;
+  // if on last slide, resent index to 0
+  if (currentSlide > $totalSlides - 1) {
+    currentSlide = 0;
+  }
+  // run cycle slides function to display slide
+  cycleSlides();
+});
+
+// call click function when prev button is clicked
+$('.restrict-prev').click(function() {
+  // update current slide index
+  currentSlide -= 1;
+  // if on first slide, move to last slide
+  if (currentSlide < 0) {
+    currentSlide = $totalSlides - 1;
+  }
+  // run cycle slides function to display slide
+  cycleSlides();
+});
+
+});
+
+/* 5-19-21 JW */
+/* to fix formatting in 20.05.09 */
+if ( $('#opac-detail').length ) {
+  let koha_version = $('meta[name="generator"]').attr('content').slice(0, 10);
+  if ( koha_version === 'Koha 20.05' ) {
+         $('#catalogue_detail_biblio').parent().addClass('span9').removeClass('col-lg-9');
+         $('.row').addClass('row-fluid').removeClass('row');
+  } else {
+         console.log('this jQuery is not being used ^^')
+  }
+}
+/* end 20.05.09 formatting fix */
+
+
+
+
+//Import data from Photo ID (v22.11)
+  $('#memberentry_library').append('<button class="btn btn-default toggler" id="btnScanPhotoID" name="scan" style="margin-right: 0px; margin-right: 5px;"><i class="fa fa-id-card-o"></i> Scan Photo ID</button>');
+$('#pat_memberentrygen').append('<div id="PhotoIDModal" class="modal fade" role="dialog" aria-hidden="true"><div class="modal-dialog"><div class="modal-content"><form id="formID" method="post" action="submit" onsubmit="return false;"><div class="modal-header"><h3 class="modal-title">Scan Photo ID</h3></div><div class="modal-body"><textarea id="inputPhotoIDData" rows="1" cols="1" style="margin-left: -400px;"></textarea><span id="msgScan"></span></div><div id="ContentFooter" class="modal-footer"><button id="btnPhotoIDClose" data-dismiss="modal" aria-hidden="true" class="btn"><i class="fa fa-times"></i> Cancel</button></div></form></div></div></div>');
+ 
+function ProcessPhotoID() {
+    // Close modal
+    $('#PhotoIDModal').modal('hide');
+    $('#PhotoIDModal').on('hidden.bs.modal', function() {
+        $('#msgScan').html('<h4>Scan Photo ID now...</h4>');
+    });
+ 
+    // Separate information into array
+    console.log($('#inputPhotoIDData').val());
+    var IDSegments = $('#inputPhotoIDData').val().split('\n');
+ 
+    function toTitleCase(str) {
+        return str.replace(/\w\S*/g, function(txt) {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    }
+ 
+    // Fix city names that are incomplete
+    function FixCity(str) {
+        if (str == 'Coeur D Al') {
+            return 'Coeur d\'Alene';
+        } else {
+            return str;
+        }
+    }
+ 
+    // Process data
+    if (IDSegments != '') {
+        var usrLastName, usrFirstName, usrMiddleName, usrBirth, usrMailingAddress, usrMailingCity, usrMailingState, usrMailingZip, usrPhysicalAddress, usrPhysicalCity, usrPhysicalState, usrPhysicalZip, usrLicenseNumber;
+        for (i = 0; i < IDSegments.length; ++i) {
+            if (IDSegments[i].startsWith('DCS')) {
+                usrLastName = toTitleCase(IDSegments[i].slice(3));
+                if (usrLastName.substring(0, 2) == 'Mc') {
+                    usrLastName = 'Mc' + usrLastName.substring(2, 3).toUpperCase() + usrLastName.substring(3);
+                }
+                if (usrLastName.substring(0, 3) == 'Mac') {
+                    $('label[for="surname"]').siblings('span.required').after('<span style="background-color: yellow; color: red; margin-left: 5px;"><i class="fa fa-exclamation-triangle" aria-hidden="true"></i> Check capitalization</span>');
+                }
+            }
+            if (IDSegments[i].startsWith('DAC')) {
+                usrFirstName = toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DAD')) {
+                usrMiddleName = toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DBB')) {
+                usrBirth = IDSegments[i].slice(3);
+                usrBirth = usrBirth.substring(0, 2) + '/' + usrBirth.substring(2, 4) + '/' + usrBirth.substring(4, 8);
+            }
+            if (IDSegments[i].startsWith('DAG')) {
+                usrMailingAddress = toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DAH')) {
+                usrMailingAddress += ' ' + toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DAI')) {
+                usrMailingCity = FixCity(toTitleCase(IDSegments[i].slice(3)));
+            }
+            if (IDSegments[i].startsWith('DAJ')) {
+                usrMailingState = IDSegments[i].slice(3);
+            }
+            if (IDSegments[i].startsWith('DAK')) {
+                usrMailingZip = toTitleCase(IDSegments[i].slice(3, 8));
+            }
+            if (IDSegments[i].startsWith('DAL')) {
+                usrPhysicalAddress = toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DAM')) {
+                usrPhysicalAddress += ' ' + toTitleCase(IDSegments[i].slice(3));
+            }
+            if (IDSegments[i].startsWith('DAN')) {
+                usrPhysicalCity = FixCity(toTitleCase(IDSegments[i].slice(3)));
+            }
+            if (IDSegments[i].startsWith('DAO')) {
+                usrPhysicalState = IDSegments[i].slice(3);
+            }
+            if (IDSegments[i].startsWith('DAP')) {
+                usrPhysicalZip = toTitleCase(IDSegments[i].slice(3, 8));
+            }
+            if (IDSegments[i].startsWith('DAQ')) {
+                usrLicenseNumber = IDSegments[i].slice(3);
+            }
+        }
+ 
+        // Copy data to form fields
+        $('#surname').val(usrLastName).css('background-color', 'yellow');
+        $('#firstname').val(usrFirstName).css('background-color', 'yellow');
+        $('#middle_name').val(usrMiddleName).css('background-color', 'yellow');
+        $('span.flatpickr_wrapper_dateofbirth input').val(usrBirth).css('background-color', 'yellow');
+        $('#address').val(usrMailingAddress).css('background-color', 'yellow');
+        $('#city').val(usrMailingCity).css('background-color', 'yellow');
+        $('#state').val(usrMailingState).css('background-color', 'yellow');
+        $('#zipcode').val(usrMailingZip).css('background-color', 'yellow');
+        $('#phone').css('background-color', '#6faf44');
+        $('#email').css('background-color', '#6faf44');
+ 
+        // If secondary address doesn't exist, it usually starts with @
+        if (typeof usrPhysicalAddress != 'undefined') {
+            $('#B_address').val(usrPhysicalAddress).css('background-color', 'yellow');
+            $('#B_city').val(usrPhysicalCity).css('background-color', 'yellow');
+            $('#B_state').val(usrPhysicalState).css('background-color', 'green');
+            $('#B_zipcode').val(usrPhysicalZip).css('background-color', 'green');
+        }
+ 
+        // Add driver's license number to the form
+        $('#patron_attr_1').val(usrLicenseNumber).css('background-color', 'yellow');
+ 
+        $('span.flatpickr_wrapper input').focus();
+        $('#surname').focus();
+    }
+}
+ 
+$('#pat_memberentrygen #btnScanPhotoID').on('click', function() {
+    var TimerActive = 0; // Reset timer
+    var ScanActive = 0;
+    $('#inputPhotoIDData').val('');
+    $('#msgScan').html('<h4>Scan Photo ID now...</h4>');
+    $('#PhotoIDModal').modal('show');
+    $('#PhotoIDModal').on('shown.bs.modal', function () {
+        $('#inputPhotoIDData').focus();
+        $('#inputPhotoIDData').unbind();
+        $('#inputPhotoIDData').keydown(function(event) {
+            var code = (event.keyCode || event.which);
+            if (event.keyCode == 13) {
+                event.preventDefault();
+                return false;
+            }
+            if (code == 120) { // Disable F9 so Firefox doesn't launch reader
+                return false;
+            }
+        });
+        $('#inputPhotoIDData').on('keyup', function() {
+            if (ScanActive == 0) { // Set Processing Message
+                $('#msgScan').html('<center><h4>Processing...  please wait.</h4><svg xmlns="http://www.w3.org/2000/svg"width="50px" height="50px" viewBox="0 0 105 105" fill="#000"><circle cx="12.5" cy="12.5" r="12.5"><animate attributeName="fill-opacity" begin="0s" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="12.5" cy="52.5" r="12.5" fill-opacity=".5"><animate attributeName="fill-opacity" begin="100ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="52.5" cy="12.5" r="12.5"><animate attributeName="fill-opacity" begin="300ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="52.5" cy="52.5" r="12.5"><animate attributeName="fill-opacity" begin="600ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="92.5" cy="12.5" r="12.5"><animate attributeName="fill-opacity" begin="800ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="92.5" cy="52.5" r="12.5"><animate attributeName="fill-opacity" begin="400ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="12.5" cy="92.5" r="12.5"><animate attributeName="fill-opacity" begin="700ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="52.5" cy="92.5" r="12.5"><animate attributeName="fill-opacity" begin="500ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle><circle cx="92.5" cy="92.5" r="12.5"><animate attributeName="fill-opacity" begin="200ms" dur="1s" values="1;.2;1" calcMode="linear" repeatCount="indefinite"/></circle></svg></center>');
+          //Processing Graphic from https://github.com/SamHerbert/SVG-Loaders/tree/master/svg-loaders
+          ScanActive = 1;
+        }
+        if (TimerActive == 0) {  //Time's up on input
+          TimerActive = 1;
+          setTimeout(function(){
+            console.log('Entire block of data: ');
+            console.log($('#inputPhotoIDData').val());
+            var checkStart = $('#inputPhotoIDData').val().startsWith('@'); //Check if beginning of barcode starts with @
+            if (checkStart) { //Was this a valid barcode?
+              ProcessPhotoID();
+            } else {
+              $('#msgScan').html('<center><h4>That doesn\'t look like a Photo ID.  Try again.</h4></center>');
+              $('#inputPhotoIDData').val('');
+              TimerActive = 0;
+              ScanActive = 0;
+            }
+          }, 5000);          
+        }
+        console.log(event.key);
+        //Convert to linefeed - ArrowDown for Honeywell 7580g and Star Micronics BSH-HR2081BT / ArrowRight for Datalogic QD2430 / Alt for Zebra Symbol DS4308 // Enter for Zebra DS9308
+        if ((event.key == 'ArrowDown') || (event.key == 'ArrowRight') || (event.key == 'Alt') || (event.key == 'Enter')) {
+          $('#inputPhotoIDData').val($('#inputPhotoIDData').val() + '\n');
+        }
+      });
+    });
+  });
+  //END Import data from Photo ID
+
+
+
+
+/****Research Center JS******/
+ var filterActive;
+        function filterCategory(category) {
+            if (filterActive != category) {
+                $('.filter-db-results .fil-db').removeClass('active');
+                $('.filter-db-results .fil-db')
+                    .filter('[data-resource="' + category + '"]')
+                    .addClass('active');
+                filterActive = category;
+            }
+        }
+
+        $('.fil-db').addClass('active');
+        $('.filter-elements select').change(function() {
+            if ($(this).val() == 'all') {
+                $('.filter-db-results .fil-db').addClass('active');
+                filterActive = 'all';
+            } else {
+                filterCategory($(this).val());
+            }
+        });
+
+
+
+
+/***OPAC DL Form Registration ***/
+$("#borrower_middle_name, #borrower_pronouns, #borrower_othernames, #borrower_country, #borrower_initials, #borrower_mobile, #borrower_primary_contact_method, #password, #password2")
+  .closest( "li")
+  .css( "display", "none" );
+
+$("#navigation")
+  .parents( "div:first")
+  .css( "display", "none" );
+
+/*** End OPAC Form Registration***/
+document.getElementById("memberentry_password").innerHTML = "Your password will be set to the last four digits <br> of your digital library card number";
+
+/***Appending the Aspen Nav and search to Koha OPAC***/
